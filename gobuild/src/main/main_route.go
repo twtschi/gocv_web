@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"fmt"
 	"html/template"
+	"image"
 	"io"
 	"net/http"
 	"net/textproto"
@@ -15,25 +16,29 @@ import (
 	"gocv.io/x/gocv"
 )
 
+// =========================================
 type FileHeader struct {
 	Filename string
 	Header   textproto.MIMEHeader
 	// contains filtered or unexported fields
 }
 
+type PictureHandler struct {
+	SrcFilename string
+	DstFilename string
+}
+
+// =========================================
 func init() {
 	loadConfig()
 }
 
 func index(writer http.ResponseWriter, request *http.Request) {
-	// threads := data.GetList()
 	generateHTML(writer, nil, "layout", "public.navbar", "index")
 }
 
 // handle upload file
 func upload(w http.ResponseWriter, r *http.Request) {
-	// threads := data.GetList()
-	// generateHTML(writer, nil, "layout", "public.navbar", "index")
 	fmt.Println("method:", r.Method)
 	if r.Method == "GET" {
 		crutime := time.Now().Unix()
@@ -59,7 +64,13 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		}
 		defer f.Close()
 		io.Copy(f, file)
-		generateHTML(w, handler.Filename, "layout", "public.navbar", "showimage")
+
+		picthandler := PictureHandler{
+			SrcFilename: handler.Filename,
+			// DstFilename: nil,
+		}
+
+		generateHTML(w, picthandler, "layout", "public.navbar", "showimage")
 	}
 
 }
@@ -86,15 +97,51 @@ func imageprocess(w http.ResponseWriter, r *http.Request) {
 	p("imageprocess")
 	os.Remove("sample/out.jpg")
 	name := r.FormValue("imagename")
+	method := r.FormValue("method")
 	strsource := fmt.Sprintf("sample/%s", name)
 
+	p("name %v, method %v, strsource %v", name, method, strsource)
+
 	// using gocv
-	src_img := gocv.IMRead(strsource, gocv.IMReadGrayScale)
+	src_img := gocv.NewMat()
+	defer src_img.Close()
 
-	// using threshold
+	cvt_img := gocv.NewMat()
+	defer cvt_img.Close()
+
 	threshold_img := gocv.NewMat()
-	gocv.Threshold(src_img, &threshold_img, 100, 255, gocv.ThresholdType)
-	gocv.IMWrite("sample/out.jpg", threshold_img)
+	defer threshold_img.Close()
 
-	generateHTML(w, "out.jpg", "layout", "public.navbar", "index")
+	blur_img := gocv.NewMat()
+	defer blur_img.Close()
+
+	src_img = gocv.IMRead(strsource, gocv.IMReadColor)
+	gocv.CvtColor(src_img, &cvt_img, gocv.ColorBGRToGray)
+	gocv.IMWrite("sample/cvt.jpg", cvt_img)
+
+	if method == "Threshold" {
+		threshold_param, err := strconv.Atoi(r.FormValue("threshold_param"))
+		if err != nil {
+			p("err ", err)
+		}
+		gocv.Threshold(cvt_img, &threshold_img, float32(threshold_param), 255, gocv.ThresholdBinary)
+		gocv.IMWrite("sample/out.jpg", threshold_img)
+	} else if method == "Blur" {
+		blur_param, err := strconv.Atoi(r.FormValue("blur_param"))
+		if err != nil {
+			p("err ", err)
+		}
+		gocv.GaussianBlur(cvt_img, &blur_img, image.Pt(blur_param, blur_param), 0, 0, gocv.BorderDefault)
+		gocv.IMWrite("sample/out.jpg", blur_img)
+	} else {
+		p("Cannot find method")
+	}
+
+	picthandler := PictureHandler{
+		SrcFilename: name,
+		DstFilename: "out.jpg",
+	}
+	p("picthandler src %v, dst %v", picthandler.SrcFilename, picthandler.DstFilename)
+
+	generateHTML(w, picthandler, "layout", "public.navbar", "showimage")
 }

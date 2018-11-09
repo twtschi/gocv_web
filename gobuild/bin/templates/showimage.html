@@ -1,0 +1,34 @@
+{{ define "content" }}
+<div class="container">
+    <div class="row">
+        <p class="lead">Show Image</p>
+    </div>
+    <div class="row">
+        <form enctype="multipart/form-data" action="/imageprocess" method="post">
+            <div class="col">
+                <div class="btn-group" role="group" aria-label="Basic example">
+                    <button type="submit" class="btn btn-secondary" name="method" value="Threshold">Threshold</button>
+                    <button type="submit" class="btn btn-secondary" name="method" value="Blur">Gaussian Blur</button>
+                    <input type="hidden" name="imagename" value="{{.SrcFilename}}"/>
+            </div>
+            <div class="col">
+                <input type="text" name="threshold_param" class="form-control" placeholder="Threshold" aria-label="Input group example" aria-describedby="btnGroupAddon1">
+                <input type="text" name="blur_param" class="form-control" placeholder="Blur size" aria-label="Input group example" aria-describedby="btnGroupAddon2">
+            </div>
+        </form>
+    </div>
+    <div class="panel panel-default">
+        <div class="panel-body">
+            <img src="sample/{{ .SrcFilename }}" style="width:600px;height:480px;" />
+        </div>
+{{ if .DstFilename }}
+        <div class="panel-body">
+            <h3 class="lead">Result</h3>
+            <img src="sample/{{ .DstFilename }}" style="width:600px;height:480px;" />
+        </div>
+{{end}}
+    </div>
+</div>
+
+</div>
+{{ end }}

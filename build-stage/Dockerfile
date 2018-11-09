@@ -70,10 +70,10 @@ ENV CGO_CXXFLAGS "--std=c++1z"
 ENV CGO_LDFLAGS "-L/usr/local/lib -lopencv_core -lopencv_face -lopencv_videoio -lopencv_imgproc -lopencv_highgui -lopencv_imgcodecs -lopencv_objdetect -lopencv_features2d -lopencv_video -lopencv_dnn -lopencv_xfeatures2d -lopencv_plot -lopencv_tracking"
 
 # copy workdir
-ENV GOPATH /work_dir
-COPY . /work_dir
-RUN cd /work_dir
-RUN go get -u -d gocv.io/x/gocv
-# RUN go install gocv.io/x/gocv
-
-RUN go build -o bin/main main
+# ENV GOPATH /work_dir
+# COPY . /work_dir
+# RUN cd /work_dir
+# RUN go get -u -d gocv.io/x/gocv
+# # RUN go install gocv.io/x/gocv
+# RUN rm bin/main
+# RUN go build -o bin/main main
