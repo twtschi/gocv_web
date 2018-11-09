@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"image"
+	"image/color"
 	"io"
 	"net/http"
 	"net/textproto"
@@ -27,6 +28,8 @@ type PictureHandler struct {
 	SrcFilename string
 	DstFilename string
 }
+
+const MinimumArea = 3000
 
 // =========================================
 func init() {
@@ -133,6 +136,29 @@ func imageprocess(w http.ResponseWriter, r *http.Request) {
 		}
 		gocv.GaussianBlur(cvt_img, &blur_img, image.Pt(blur_param, blur_param), 0, 0, gocv.BorderDefault)
 		gocv.IMWrite("sample/out.jpg", blur_img)
+	} else if method == "FindContour" {
+		threshold_param, err := strconv.Atoi(r.FormValue("threshold_param"))
+		if err != nil {
+			p("err ", err)
+		}
+		gocv.Threshold(cvt_img, &threshold_img, float32(threshold_param), 255, gocv.ThresholdBinary)
+		// now find contours
+		contours := gocv.FindContours(threshold_img, gocv.RetrievalExternal, gocv.ChainApproxSimple)
+
+		for i, c := range contours {
+			area := gocv.ContourArea(c)
+			if area < MinimumArea {
+				continue
+			}
+
+			gocv.DrawContours(&src_img, contours, i, color.RGBA{255, 0, 0, 0}, 2)
+
+			rect := gocv.BoundingRect(c)
+			gocv.Rectangle(&src_img, rect, color.RGBA{0, 0, 255, 0}, 2)
+		}
+
+		gocv.IMWrite("sample/out.jpg", src_img)
+
 	} else {
 		p("Cannot find method")
 	}
